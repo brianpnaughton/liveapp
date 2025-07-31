@@ -1,0 +1,7 @@
+google-adk
+aiohttp
+aiohttp_cors
+aiortc
+python-socketio
+a2a-sdk
+Pillow
