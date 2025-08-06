@@ -17,6 +17,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  bool _isConnecting = false;
+  bool _buttonAtBottom = false;
 
   @override
   void initState() {
@@ -33,12 +35,26 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onConnectPressed() async {
     final appState = Provider.of<AppState>(context, listen: false);
     if (appState.isConnected) {
+      setState(() {
+        _isConnecting = false;
+        _buttonAtBottom = false;
+      });
       await appState.stopCall();
     } else {
       if (!appState.isSocketConnected) {
         _showNotConnectedMessage();
         return;
       }
+
+      // Start animation immediately
+      setState(() {
+        _isConnecting = true;
+        _buttonAtBottom = true;
+      });
+
+      // Wait for animation to complete before starting connection
+      await Future.delayed(const Duration(milliseconds: 500));
+
       if (appState.connectionType == 'audio') {
         await appState.startAudioCall();
       } else {
@@ -91,6 +107,25 @@ class _MyHomePageState extends State<MyHomePage> {
         if (appState.localStream != null) {
           _localRenderer.srcObject = appState.localStream;
         }
+
+        // Reset _isConnecting when connection is established, but keep button at bottom
+        if (_isConnecting && appState.isConnected) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _isConnecting = false;
+              // Keep _buttonAtBottom = true since we're now connected
+            });
+          });
+        }
+
+        // Reset button position when disconnected
+        if (!_isConnecting && !appState.isConnected && _buttonAtBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _buttonAtBottom = false;
+            });
+          });
+        }
         return Scaffold(
           appBar: AppBar(
             title: Text(widget.title),
@@ -125,71 +160,89 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           backgroundColor: Colors.white,
           body: SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                // Expanded center container with AgentTextWidget
-                Expanded(
-                  child: Stack(
-                    children: [
-                      if (appState.connectionType == 'video' &&
-                          appState.localStream != null)
-                        RTCVideoView(
-                          _localRenderer,
-                          objectFit:
-                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        ),
-                      if (appState.webrtcClient != null)
-                        ValueListenableBuilder<RTCVideoRenderer?>(
-                          valueListenable:
-                              appState.webrtcClient!.remoteRendererNotifier,
-                          builder: (context, remoteRenderer, _) {
-                            if (remoteRenderer != null) {
-                              return Offstage(
-                                offstage: true,
-                                child: RTCVideoView(remoteRenderer),
-                              );
-                            }
-                            return Container();
-                          },
-                        ),
-                      if (appState.isConnected &&
-                          appState.responseType == 'text')
-                        const Align(
-                          alignment: Alignment.topCenter,
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: AgentTextWidget(), // This will be overlaid
-                          ),
-                        ),
-                    ],
-                  ),
+                // Main content area
+                Column(
+                  children: [
+                    // Expanded center container with AgentTextWidget
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          if (appState.connectionType == 'video' &&
+                              appState.localStream != null)
+                            RTCVideoView(
+                              _localRenderer,
+                              objectFit: RTCVideoViewObjectFit
+                                  .RTCVideoViewObjectFitCover,
+                            ),
+                          if (appState.webrtcClient != null)
+                            ValueListenableBuilder<RTCVideoRenderer?>(
+                              valueListenable:
+                                  appState.webrtcClient!.remoteRendererNotifier,
+                              builder: (context, remoteRenderer, _) {
+                                if (remoteRenderer != null) {
+                                  return Offstage(
+                                    offstage: true,
+                                    child: RTCVideoView(remoteRenderer),
+                                  );
+                                }
+                                return Container();
+                              },
+                            ),
+                          if (appState.isConnected &&
+                              appState.responseType == 'text')
+                            const Align(
+                              alignment: Alignment.topCenter,
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child:
+                                    AgentTextWidget(), // This will be overlaid
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Reserve space for the button when it's at the bottom
+                    if (_buttonAtBottom || appState.isConnected)
+                      const SizedBox(height: 96), // Height for button + padding
+                  ],
                 ),
 
-                // Bottom button
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
+                // Animated connect button
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut,
+                  left: MediaQuery.of(context).size.width / 2 - 40,
+                  bottom: (_buttonAtBottom || appState.isConnected)
+                      ? 24
+                      : MediaQuery.of(context).size.height / 2 + 40,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 80,
+                    height: 80,
+                    child: ElevatedButton(
                       onPressed: _onConnectPressed,
-                      icon: Icon(
-                        appState.isConnected
-                            ? Icons.call_end
-                            : appState.connectionType == 'video'
-                            ? Icons.videocam
-                            : Icons.mic,
-                      ),
-                      label: Text(
-                        appState.isConnected ? 'Disconnect' : 'Connect',
-                      ),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.zero,
                         backgroundColor: appState.isConnected
                             ? Colors.red
                             : Colors.blue,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        shape: const CircleBorder(),
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          appState.isConnected
+                              ? Icons.call_end
+                              : appState.connectionType == 'video'
+                              ? Icons.videocam
+                              : Icons.mic,
+                          key: ValueKey(
+                            appState.isConnected ? 'connected' : 'disconnected',
+                          ),
+                          size: 32,
                         ),
                       ),
                     ),
