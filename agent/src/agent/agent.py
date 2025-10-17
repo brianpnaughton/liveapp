@@ -32,17 +32,10 @@ from google.adk.agents import Agent
 logger = logging.getLogger(__name__)
 
 root_agent = Agent(
-   # A unique name for the agent.
    name="google_search_agent",
-   # The Large Language Model (LLM) that agent will use.
-   model="gemini-2.0-flash-exp", # if this model does not work, try below
-   # model="gemini-2.0-flash-live-001",
-   # A short description of the agent's purpose.
+   model="gemini-2.0-flash-exp",
    description="Agent to answer questions.",
-   # Instructions to set the agent's behavior.
    instruction="Answer the users questions.",
-   # Add google_search tool to perform grounding with Google search.
-   # tools=[google_search],
 )
 
 class GeminiAgent():
