@@ -12,10 +12,19 @@ You need the following software/cloud subscription to run the demo.
 
 ## Run the Agent 
 
-To run the agent, run the following commands
+Setup a virtual environment. 
 
 ```
 cd agent
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r ./requirements.txt
+```
+
+To run the agent, run the following commands
+
+```
+cd src
 export GOOGLE_CLOUD_PROJECT=<YOUR PROJECT>
 export GOOGLE_CLOUD_LOCATION=<YOUR REGION>
 export GOOGLE_GENAI_USE_VERTEXAI=TRUE
@@ -30,3 +39,13 @@ To run the app in a browser, run the following commands
 cd app
 flutter run -d chrome
 ```
+
+## Interact with the agent
+
+You can access the connection type and agent response type from the drawer menu on the top left of the app.
+
+You can choose to a video or audio connection type and also how you would like the agent to respond, via text or audio. The connection button in the middle of the screen will change accordingly. 
+
+Pushing the connection button will start a webrtc session with the agent and you can interact with the agent live. 
+
+
