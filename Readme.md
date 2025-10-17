@@ -6,6 +6,6 @@ Simple demo of a mobile app that can interact with a Gemini live agent through v
 <img src="docs/demo.drawio.svg"  width="500">
 </p>
 
-The demo consists of a flutter app and an [ADK](https://google.github.io/adk-docs/) based AI agent. The app communicates with the AI agent using [WebRTC](https://webrtc.org/). The agent
+The demo consists of a flutter app and an [ADK](https://google.github.io/adk-docs/) based AI agent. The app communicates with the AI agent using [WebRTC](https://webrtc.org/). The agent listens to the live conversation and can call a tool that notifies an external system of any significant voice or video patterns it has been trained to watch out for. 
 
 Follow these instructions to [run the demo](docs/install.md)
